@@ -9,14 +9,14 @@ https://automatetheboringstuff.com/chapter16/
 
 This reads a table of graded stats HW's and send emails to students with just their graded homework.
 
-It expects an excel table structured like so. And, usually, you'll have additional columns for individual 
-questions, students' responses to such questions, and your grades/comments on such responses. But, such 
-additional columns aren't strictly necessary for the script to work.
+It expects an excel table structured like the below. And, usually, you'll have additional columns for 
+individual questions, students' responses to such questions, and your grades/comments on such responses. 
+But, such additional columns aren't strictly necessary for the script to work.
 
-First Name     Last Name     Email                              Total_points
-Russell        Richie        drussellmrichie@gmail.com          9.5
-Student        McStudentFace student.mcstudentface@uconn.edu    10
-Current        Meme          current.meme@uconn.edu             9.75
+First Name     Last Name        Email                              Total_points
+Russell        Richie           drussellmrichie@gmail.com          9.5
+Student        McStudentFace    student.mcstudentface@uconn.edu    10
+Current        Meme             current.meme@uconn.edu             9.75
 """
 
 import os, smtplib
