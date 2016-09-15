@@ -46,8 +46,14 @@ smtpObj.starttls()
 # *THIS SCRIPT ASSUMES A GMAIL ADDRESS.*
 sender = 'YourEmailHere'
 
-# MODIFY WITH YOUR GMAIL PASSWORD. You may have to generate a pw from here:
-# https://security.google.com/settings/security/apppasswords?pli=1
+"""
+MODIFY pw WITH YOUR GMAIL PASSWORD. You may have to generate a pw from here:
+https://security.google.com/settings/security/apppasswords?pli=1
+
+See also, this:
+https://automatetheboringstuff.com/chapter16/#calibre_link-46
+"""
+
 pw = 'YourPasswordHere'
 
 smtpObj.login(sender, pw)
