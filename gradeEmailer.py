@@ -16,7 +16,7 @@ grades/comments on such responses. But, such additional columns aren't strictly 
 for the script to work.
 
 First Name     Last Name        Email                              Total
-Total possible points											   10
+Total possible points								               10
 Russell        Richie           drussellmrichie@gmail.com          9.5
 Student        McStudentFace    student.mcstudentface@uconn.edu    10
 Current        Meme             current.meme@uconn.edu             9.75
