@@ -26,6 +26,7 @@ comment blocks below.
 """
 
 import os, smtplib, re
+from getpass import getpass
 import pandas as pd
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -62,7 +63,7 @@ https://security.google.com/settings/security/apppasswords?pli=1
 See also, this:
 https://automatetheboringstuff.com/chapter16/#calibre_link-46
 """
-pw = 'YourPasswordHere'
+pw = getpass()
 
 smtpObj.login(sender, pw)
 
