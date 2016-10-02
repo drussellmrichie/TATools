@@ -1,4 +1,8 @@
-"""
+"""Usage:
+
+gradeEmailer.py <sender-email> <working-dir>
+
+
 Russell Richie, 2016
 github.com/drussellmrichie
 drussellmrichie@gmail.com
@@ -25,41 +29,32 @@ NOTE: You have to modify a couple lines for your use case. These are indicated w
 comment blocks below.
 """
 
-import os, smtplib, re
+import os, smtplib, re, sys
 from getpass import getpass
 import pandas as pd
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-# ADJUST WORKING FOLDER FOR YOUR MACHINE
-folder = '/Users/russellrichie/Google Drive/UConn/Teaching/PSYC5104 shared/PSYC5104 Fall 2016 homework submissions'
-os.chdir(folder)
-
 """
-MODIFY grades TO WHATEVER HW FILE YOU ARE GIVING FEEDBACK FOR
 Note that the name of this file will go in the subject line of the email, so be sure it is 
 appropriate for the students to see this file name.
 """
-grades = 'Fall 2016 Psyc 5104 -  HW1 EMAIL_TEST.xlsx'
+grades = sys.argv[2]
 hw = pd.read_excel(grades)
 #hwid = hw.ix[1,'HWID']
 hwid = re.search('HW[0-9]+',grades).group(0)[2:]
 print("Now starting to send students feedback for {}".format(grades))
 
+folder = os.path.dirname(grades)
+os.chdir(folder)
+
 # Start to setup some of the email-sending machinery
 smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
 smtpObj.starttls()
 
-"""
-MODIFY EMAIL TO THE SENDER'S EMAIL (you, the grader, most likely). 
-*THIS SCRIPT ASSUMES A GMAIL ADDRESS.*
-"""
-sender = 'YourEmailHere'
+sender = sys.argv[1]
 
 """
-MODIFY WITH YOUR GMAIL PASSWORD. You may have to generate a pw from here:
-https://security.google.com/settings/security/apppasswords?pli=1
-
 See also, this:
 https://automatetheboringstuff.com/chapter16/#calibre_link-46
 """
