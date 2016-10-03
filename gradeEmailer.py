@@ -1,23 +1,20 @@
 """Usage:
+  gradeEmailer.py [--name=NAME] [--password=PASSWORD] [--dry-run] <sender-email> <grades-path>
 
-gradeEmailer.py <sender-email> <working-dir>
+Options:
+  --name=NAME           The name of the grader.
+                        Used in the signature and From field of the email.
+                        If not given, <sender-email> will be used.
+  --password=PASSWORD   The password to the sender's email account.
+                        If not given, it will be prompted for.
+  --dry-run             To test, send emails to yourself instead of to the students.
 
+This reads a table of graded homeworks and emails each student their grade and feedback.
 
-Russell Richie, 2016
-github.com/drussellmrichie
-drussellmrichie@gmail.com
-
-This is largely cribbed from Automate the Boring Stuff with Python:
-
-https://automatetheboringstuff.com/chapter16/
-
-This reads a table of graded stats HW's and send emails to students with just their graded
-homework.
-
-It expects an excel table structured like the below. And, usually, you'll have additional 
-columns for individual questions, students' responses to such questions, and your 
-grades/comments on such responses. But, such additional columns aren't strictly necessary 
-for the script to work.
+It expects a CSV or XLS/XLSX file at <grades-path> structured like the example below.
+Usually, you'll have additional columns for individual questions, students' responses to such questions,
+and your grades/comments on such responses.
+However, these additional columns aren't strictly necessary for the script to work.
 
 First Name     Last Name        Email                              Total
 Total possible points                                              10
@@ -25,80 +22,119 @@ Russell        Richie           drussellmrichie@gmail.com          9.5
 Student        McStudentFace    student.mcstudentface@uconn.edu    10
 Current        Meme             current.meme@uconn.edu             9.75
 
-NOTE: You have to modify a couple lines for your use case. These are indicated with 
-comment blocks below.
-"""
+Note that the name of this file will go in the subject line of the email,
+so be sure it is appropriate for students to see this file name.
 
-import os, smtplib, re, sys
-from getpass import getpass
-import pandas as pd
+Total possible points must be in the first row.
+
+"""
+# Authors:
+#
+# Russell Richie
+# github.com/drussellmrichie
+# drussellmrichie@gmail.com
+#
+# Henry S. Harrison
+# github.com/hsharrison
+# henry.schafer.harrison@gmail.com
+
+# This is largely cribbed from Automate the Boring Stuff with Python:
+# https://automatetheboringstuff.com/chapter16/
+
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from getpass import getpass
+from io import StringIO
+import os.path
+import re
+import smtplib
+from textwrap import dedent
 
-"""
-Note that the name of this file will go in the subject line of the email, so be sure it is 
-appropriate for the students to see this file name.
-"""
-grades = sys.argv[2]
-hw = pd.read_excel(grades)
-#hwid = hw.ix[1,'HWID']
-hwid = re.search('HW[0-9]+',grades).group(0)[2:]
-print("Now starting to send students feedback for {}".format(grades))
+from docopt import docopt
+import pandas as pd
+from toolz import curry
 
-folder = os.path.dirname(grades)
-os.chdir(folder)
+subject = '{course}: HW{hwid} feedback'
+body = dedent("""
+    Dear {First Name} {Last Name},
 
-# Start to setup some of the email-sending machinery
-smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
-smtpObj.starttls()
+    This is an automatically generated email providing your grade and feedback on HW{hwid} in {course}.
+    You received {Total} points (out of {total_possible}).
+    See the attachment for details.
 
-sender = sys.argv[1]
+    Let me know if you have any questions.
 
-"""
-See also, this:
-https://automatetheboringstuff.com/chapter16/#calibre_link-46
-"""
-pw = getpass()
+    Best,
+    {grader_name}
 
-smtpObj.login(sender, pw)
+""").lstrip()
 
-totalPossible = submission.ix[0,'Total']
 
-def sendEmail(submission):
-    recipient = submission['Email']
-    grade     = submission['Total']
-    name      = submission['First Name'] + " " + submission['Last Name']
+def send_all_emails(from_address, grades_path, password=None, dry_run=False, from_name=None):
+    if password is None:
+        password = getpass()
     
+    grades_dir = os.path.dirname(grades_path)
+    grades_filename = os.path.basename(grades_path)
+
+    without_ext, ext = os.path.splitext(grades_filename)
+    if ext.lower() == '.csv':
+        hw_df = pd.read_csv(grades_path)
+    elif ext.lower() in {'.xlsx', '.xls'}:
+        hw_df = pd.read_excel(grades_path)
+    else:
+        raise NotImplementedError('Extension {} not supported'.format(ext))
+
+    if dry_run:
+        hw_df['Email'] = from_address
+    
+    global_info = dict(
+        hwid=re.search(r'HW[0-9]+',grades_filename).group(0)[2:],
+        course=grades_filename.split(' - ')[0],
+        total_possible=hw_df.loc[0, 'Total'],
+        grader_name=from_name or from_address,
+        from_address=from_address,
+    )
+    
+    print('Connecting and logging in to SMTP server...', end='')
+    smtp_obj = smtplib.SMTP('smtp.gmail.com', 587)
+    smtp_obj.starttls()
+    smtp_obj.login(from_address, password)
+    print('done.')
+
+    try:
+        hw_df.loc[1:, :].apply(send_email(smtp_obj, hw_df, **global_info), axis=1)
+    finally:
+        smtp_obj.quit()
+
+    print('Sent all emails.')
+
+
+@curry
+def send_email(smtp_obj, df, row, **info):
     msg = MIMEMultipart()
-    msg['Subject'] = os.path.splitext(grades)[0] + ": " + "Feedback"
-    msg['From'] = sender
-    
-    # I 'magic numbered' 10 below, but we could always put a column in the grading sheet 
-    # for total possible points, and then extract that on a hw-by-hw basis. Probably 
-    # safer, although I'm pretty sure all the stats hw's are out of 10 points?
-    bodyString = '{}, you received {} points out of {} on hw {}. Open attached csv for more.'.format(name,
-                                                                                                     grade,
-                                                                                                     totalPossible,
-                                                                                                     hwid)
-    bodyMime = MIMEText(bodyString, 'plain')
-    msg.attach(bodyMime)
-    
-    fileToSend = '{}HW{}.csv'.format(name,hwid)
-    submission.to_frame().transpose().to_csv(fileToSend)
+    msg['Subject'] = subject.format(**info)
+    msg['From'] = '{grader_name} <{from_address}>'.format(**info)
+    msg.attach(MIMEText(body.format(**info, **row), 'plain'))
 
-    with open(fileToSend) as fp:
-        attachment = MIMEText(fp.read(), _subtype='csv')
-
-    attachment.add_header("Content-Disposition", "attachment", filename=fileToSend) 
+    attachment_file = StringIO()
+    df.loc[[row.name, 0], :].to_csv(attachment_file, index=False)
+    attachment_file.seek(0)
+    attachment = MIMEText(attachment_file.read(), _subtype='csv')
+    attachment.add_header('Content-Disposition', 'attachment', filename='{Last Name} HW{hwid}'.format(**info, **row))
     msg.attach(attachment)
-    
-    smtpObj.sendmail(sender,recipient, msg.as_string())
-    
-    # We don't really need these one-student csv's anymore, and they clutter up the folder, 
-    # so just delete them
-    os.remove(fileToSend)
 
-hw.apply(sendEmail,axis=1)
+    print('Emailing {First Name} {Last Name} <{Email}>...'.format(**row), end='')
+    smtp_obj.sendmail(info['from_address'], row['Email'], msg.as_string())
+    print('done.')
 
-smtpObj.quit()
-print("All done sending students feedback for {}".format(grades))
+
+def main(argv=None):
+    args = docopt(__doc__, argv=argv)
+
+    send_all_emails(args['<sender-email>'], args['<grades-path>'], dry_run=args['--dry-run'], password=args['--password'], from_name=args['--name'])
+
+
+if __name__ == '__main__':
+    main()
