@@ -66,7 +66,7 @@ pw = 'YourPasswordHere'
 
 smtpObj.login(sender, pw)
 
-totalPossible = submission.ix[0,'Total']
+totalPossible = hw.ix[0,'Total']
 
 def sendEmail(submission):
     recipient = submission['Email']
