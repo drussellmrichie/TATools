@@ -122,7 +122,7 @@ def send_email(smtp_obj, df, row, **info):
     df.loc[[row.name, 0], :].to_csv(attachment_file, index=False)
     attachment_file.seek(0)
     attachment = MIMEText(attachment_file.read(), _subtype='csv')
-    attachment.add_header('Content-Disposition', 'attachment', filename='{Last Name} HW{hwid}'.format(**info, **row))
+    attachment.add_header('Content-Disposition', 'attachment', filename='{Last Name} HW{hwid}.csv'.format(**info, **row))
     msg.attach(attachment)
 
     print('Emailing {First Name} {Last Name} <{Email}>...'.format(**row), end='')
