@@ -15,6 +15,8 @@ validity.
 
 These functions are too complicated to ask COGS students to recreate from scratch....is there any way to 
 provide students with pieces and ask them to fill them in a little bit, or answer questions about them?
+
+Some or all of this could be improved by relying on NLTK's logic functionality.
 """
 
 from itertools import product 
